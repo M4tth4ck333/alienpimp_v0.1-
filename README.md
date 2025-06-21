@@ -1,49 +1,72 @@
-
 alien pimp
-
-alien pimp ist ein modulares, datenbankgestütztes und KI-kompatibles Pentest-Toolkit mit textbasierter Benutzeroberfläche (TUI). 
-Es vereint moderne Automatisierung, flexible Snippet-Verwaltung, Angriffsempfehlungen und umfassende Dokumentation.
-Die Plattform ist für den Einsatz in lokalen, verteilten und 
-netzwerkbasierten Umgebungen konzipiert und integriert sich nahtlos mit dem Joint Areal Network (JAN).
-Inhaltsverzeichnis
-
-Überblick
-
-    alien pimp bietet eine zentrale, intuitive Steuerzentrale für Pentest- und Red-Teaming-Tools.
-    Es ermöglicht das Management, die Ausführung und die Dokumentation von Code-Snippets,
-    Exploits und Modulen in einer flexiblen,
-    erweiterbaren Umgebung. Die Integration mit dem Joint Areal Network (JAN),
-    macht verteilte und automatisierte Abläufe möglich.
-
-Hauptfunktionen
-
-    Modulare Verwaltung von Tools, Skripten und Code-Snippets
-    Integration mit JAN für verteilte und orchestrierte Abläufe
-    Text User Interface (TUI) für schnelle, terminalbasierte Bedienung
-    Datenbankgestützte Organisation aller Aktivitäten, Snippets und Logs
-    Automatisierte Angriffsempfehlungen auf Basis von Kontext und Historie
-    KI-Kompatibilität (PyTorch) für fortgeschrittene Analysen und Empfehlungen
-    Umfassende Dokumentation & Logging aller Aktionen und Ergebnisse
-    Exportfunktionen (CSV, JSON, PDF) für Reporting und Weiterverarbeitung
-
-Architektur
-
-            alienpimp/
-            ├── tui.py                 # TUI-Frontend
-            ├── core/
-            │   ├── module_manager.py  # Verwaltung von Modulen & Paketen
-            │   ├── snippet_db.py      # Datenbank-Backend (SQLAlchemy)
-            │   ├── recommender.py     # Angriffsempfehlungen & KI-Integration
-            │   └── jan_connector.py   # Schnittstelle zu JAN
-            ├── data/
-            │   ├── snippets.json      # Snippet-Sammlung (JSON)
-            │   ├── metadata.csv       # Metadaten (CSV)
-            │   └── logs/              # Logfiles
-            ├── docs/
-            │   └── README.md
-            ├── tests/
-            └── requirements.txt
-            
+    
+    ## Ziel
+    Alle Module (Tools) sollen flexibel und dynamisch angebunden werden können – je nach technischer Möglichkeit und Einsatzzweck.
+    ## Integrationsarten
+    
+    ### 1. CLI (Command Line Interface)
+    - **Was?**: Das Tool wird wie im Terminal direkt per Befehl gestartet.
+    - **Beispiel**: recon-ng, msfconsole, setoolkit
+    - **Integration im System**: Über Python `subprocess`-Aufrufe werden Befehle ausgeführt und die Ausgabe verarbeitet.
+    - **Vorteile**: Schnell, keine tiefere Integration nötig, funktioniert mit fast allen Tools.
+    - **Nachteile**: Fehler- und Ausgabe-Parsing nötig, weniger Kontrolle über interne Abläufe.
+    
+    ### 2. API (Application Programming Interface)
+    - **Was?**: Das Tool oder die Plattform bietet eine (meist REST-) API zur Fernsteuerung.
+    - **Beispiel**: Pentest-Tools.com API, Burp Suite REST API, viele Cloud-Scanner
+    - **Integration im System**: Über Python-HTTP-Requests (z.B. `requests`-Bibliothek) werden Funktionen direkt angesteuert.
+    - **Vorteile**: Strukturierte Rückgaben, oft für Automatisierung und Remote-Workflows geeignet.
+    - **Nachteile**: Authentifizierung/API-Key nötig, evtl. Funktionsumfang begrenzt.
+    
+    ### 3. Bibliothek (Library)
+    - **Was?**: Das Tool ist als Python- oder andere Programmbibliothek verfügbar und kann direkt importiert werden.
+    - **Beispiel**: nmap-python, shodan, eigene Module
+    - **Integration im System**: Direktes Importieren und Aufrufen der Funktionen im eigenen Code.
+    - **Vorteile**: Maximale Kontrolle, beste Integration, Fehlerbehandlung direkt möglich.
+    - **Nachteile**: Nicht jedes Tool bietet eine Bibliothek, Updates müssen ggf. manuell gepflegt werden.
+    
+    ---
+    
+    ## Umsetzung im Projekt
+    
+    - Jedes Modul bekommt im Metadaten-Dictionary einen Typ (`cli`, `api`, `lib`) und die nötigen Aufrufparameter.
+    - Die Hauptlogik entscheidet dynamisch, wie das Modul angesteuert wird.
+    - Ziel: Maximale Flexibilität und Kompatibilität mit möglichst vielen Tools und Plattformen.
+    - alien pimp bietet eine zentrale, intuitive Steuerzentrale für Pentest- und Red-Teaming-Tools.
+        Es ermöglicht das Management, die Ausführung und die Dokumentation von Code-Snippets,
+        Exploits und Modulen in einer flexiblen,
+        erweiterbaren Umgebung. Die Integration mit dem Joint Areal Network (JAN),
+        macht verteilte und automatisierte Abläufe möglich.
+    
+    Hauptfunktionen
+    
+        Modulare Verwaltung von Tools, Skripten und Code-Snippets
+        Integration mit JAN für verteilte und orchestrierte Abläufe
+        Text User Interface (TUI) für schnelle, terminalbasierte Bedienung
+        Datenbankgestützte Organisation aller Aktivitäten, Snippets und Logs
+        Automatisierte Angriffsempfehlungen auf Basis von Kontext und Historie
+        KI-Kompatibilität (PyTorch) für fortgeschrittene Analysen und Empfehlungen
+        Umfassende Dokumentation & Logging aller Aktionen und Ergebnisse
+        Exportfunktionen (CSV, JSON, PDF) für Reporting und Weiterverarbeitung
+    
+    Architektur
+    
+                alienpimp/
+                ├── tui.py                 # TUI-Frontend
+                ├── core/
+                │   ├── module_manager.py  # Verwaltung von Modulen & Paketen
+                │   ├── snippet_db.py      # Datenbank-Backend (SQLAlchemy)
+                │   ├── recommender.py     # Angriffsempfehlungen & KI-Integration
+                │   └── jan_connector.py   # Schnittstelle zu JAN
+                ├── data/
+                │   ├── snippets.json      # Snippet-Sammlung (JSON)
+                │   ├── metadata.csv       # Metadaten (CSV)
+                │   └── logs/              # Logfiles
+                ├── docs/
+                │   └── README.md
+                ├── tests/
+                └── requirements.txt
+                
 JAN-Integration
 
 alien pimp nutzt das JAN-Framework als Orchestrator
