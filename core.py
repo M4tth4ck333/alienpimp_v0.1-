@@ -1,4 +1,3 @@
-# core.py
 from typing import Optional, List
 from pathlib import Path
 from logger import get_logger
@@ -10,12 +9,22 @@ class BasePackage(PackageORM):
         super().__init__(name, version, source)
         self.logger = get_logger(f"Package:{self.name}")
         self.filepath = filepath
+        self.timestamp = None
+        self.sha256 = None
         if filepath:
             try:
-                self.compute_sha256(filepath)
+                self.sha256 = self.compute_sha256(filepath)
                 self.timestamp = datetime.utcnow().isoformat()
             except Exception as e:
                 self.logger.error(f"Fehler beim Hashen von {filepath}: {e}")
+
+    def compute_sha256(self, filepath: Path) -> str:
+        import hashlib
+        hasher = hashlib.sha256()
+        with open(filepath, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hasher.update(chunk)
+        return hasher.hexdigest()
 
     def build(self):
         self.logger.info(f"Baue Paket {self.name} Version {self.version}")
@@ -60,7 +69,7 @@ class AlienManager:
             pkgs = self.storage.load_csv()
         for pkg_orm in pkgs:
             pkg = BasePackage(pkg_orm.name, pkg_orm.version, pkg_orm.source)
-            pkg.timestamp = pkg_orm.timestamp
-            pkg.sha256 = pkg_orm.sha256
+            pkg.timestamp = getattr(pkg_orm, "timestamp", None)
+            pkg.sha256 = getattr(pkg_orm, "sha256", None)
             self.packages[pkg.name] = pkg
         self.logger.info(f"{len(self.packages)} Pakete geladen")
