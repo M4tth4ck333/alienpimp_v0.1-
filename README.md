@@ -1,16 +1,19 @@
 
 alien pimp
 
-alien pimp ist ein modulares, datenbankgestütztes und KI-kompatibles Pentest-Toolkit mit textbasierter Benutzeroberfläche (TUI). Es vereint moderne 
-Automatisierung, flexible Snippet-Verwaltung, Angriffsempfehlungen und umfassende Dokumentation. Die Plattform ist für den Einsatz in lokalen, verteilten und 
+alien pimp ist ein modulares, datenbankgestütztes und KI-kompatibles Pentest-Toolkit mit textbasierter Benutzeroberfläche (TUI). 
+Es vereint moderne Automatisierung, flexible Snippet-Verwaltung, Angriffsempfehlungen und umfassende Dokumentation.
+Die Plattform ist für den Einsatz in lokalen, verteilten und 
 netzwerkbasierten Umgebungen konzipiert und integriert sich nahtlos mit dem Joint Areal Network (JAN).
 Inhaltsverzeichnis
 
 Überblick
 
     alien pimp bietet eine zentrale, intuitive Steuerzentrale für Pentest- und Red-Teaming-Tools.
-    Es ermöglicht das Management, die Ausführung und die Dokumentation von Code-Snippets, Exploits und Modulen in einer flexiblen,
-    erweiterbaren Umgebung. Die Integration mit dem Joint Areal Network (JAN) macht verteilte und automatisierte Abläufe möglich.
+    Es ermöglicht das Management, die Ausführung und die Dokumentation von Code-Snippets,
+    Exploits und Modulen in einer flexiblen,
+    erweiterbaren Umgebung. Die Integration mit dem Joint Areal Network (JAN),
+    macht verteilte und automatisierte Abläufe möglich.
 
 Hauptfunktionen
 
@@ -43,7 +46,8 @@ Architektur
             
 JAN-Integration
 
-alien pimp nutzt das JAN-Framework als Orchestrator für verteilte, netzwerkbasierte Abläufe.
+alien pimp nutzt das JAN-Framework als Orchestrator
+für verteilte, netzwerkbasierte Abläufe.
 Funktionen:
     Steuerung und Verteilung von Aufgaben über JAN-Knoten
     Remote-Ausführung und Monitoring von Pentest-Workflows
@@ -103,8 +107,11 @@ Installation:
 
 bash
 git clone https://github.com/DEINUSERNAME/alienpimp.git
+
 cd alienpimp
+
 pip install -r requirements.txt
+
 python tui.py
 
 Beispiel-Workflows
