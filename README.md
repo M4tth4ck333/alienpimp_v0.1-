@@ -1,100 +1,60 @@
 
 alien pimp
 
-alien pimp ist ein modulares, datenbankgestütztes und KI-kompatibles Pentest-Toolkit mit textbasierter Benutzeroberfläche (TUI). Es vereint moderne Automatisierung, flexible Snippet-Verwaltung, Angriffsempfehlungen und umfassende Dokumentation. Die Plattform ist für den Einsatz in lokalen, verteilten und netzwerkbasierten Umgebungen konzipiert und integriert sich nahtlos mit dem Joint Areal Network (JAN).
+alien pimp ist ein modulares, datenbankgestütztes und KI-kompatibles Pentest-Toolkit mit textbasierter Benutzeroberfläche (TUI). Es vereint moderne 
+Automatisierung, flexible Snippet-Verwaltung, Angriffsempfehlungen und umfassende Dokumentation. Die Plattform ist für den Einsatz in lokalen, verteilten und 
+netzwerkbasierten Umgebungen konzipiert und integriert sich nahtlos mit dem Joint Areal Network (JAN).
 Inhaltsverzeichnis
-
-    Überblick
-
-    Hauptfunktionen
-
-    Architektur
-
-    JAN-Integration
-
-    Modulare Paket- und Snippet-Verwaltung
-
-    Text User Interface (TUI)
-
-    Datenbank & Logging
-
-    KI-Kompatibilität (PyTorch)
-
-    Sicherheit & Rechteverwaltung
-
-    Installation
-
-    Beispiel-Workflows
-
-    Roadmap
-
-    Mitmachen
-
-    Lizenz
 
 Überblick
 
-alien pimp bietet eine zentrale, intuitive Steuerzentrale für Pentest- und Red-Teaming-Tools. Es ermöglicht das Management, die Ausführung und die Dokumentation von Code-Snippets, Exploits und Modulen in einer flexiblen, erweiterbaren Umgebung. Die Integration mit dem Joint Areal Network (JAN) macht verteilte und automatisierte Abläufe möglich.
+    alien pimp bietet eine zentrale, intuitive Steuerzentrale für Pentest- und Red-Teaming-Tools.
+    Es ermöglicht das Management, die Ausführung und die Dokumentation von Code-Snippets, Exploits und Modulen in einer flexiblen,
+    erweiterbaren Umgebung. Die Integration mit dem Joint Areal Network (JAN) macht verteilte und automatisierte Abläufe möglich.
+
 Hauptfunktionen
 
     Modulare Verwaltung von Tools, Skripten und Code-Snippets
-
     Integration mit JAN für verteilte und orchestrierte Abläufe
-
     Text User Interface (TUI) für schnelle, terminalbasierte Bedienung
-
     Datenbankgestützte Organisation aller Aktivitäten, Snippets und Logs
-
     Automatisierte Angriffsempfehlungen auf Basis von Kontext und Historie
-
     KI-Kompatibilität (PyTorch) für fortgeschrittene Analysen und Empfehlungen
-
     Umfassende Dokumentation & Logging aller Aktionen und Ergebnisse
-
     Exportfunktionen (CSV, JSON, PDF) für Reporting und Weiterverarbeitung
 
 Architektur
 
-text
-alienpimp/
-├── tui.py                 # TUI-Frontend
-├── core/
-│   ├── module_manager.py  # Verwaltung von Modulen & Paketen
-│   ├── snippet_db.py      # Datenbank-Backend (SQLAlchemy)
-│   ├── recommender.py     # Angriffsempfehlungen & KI-Integration
-│   └── jan_connector.py   # Schnittstelle zu JAN
-├── data/
-│   ├── snippets.json      # Snippet-Sammlung (JSON)
-│   ├── metadata.csv       # Metadaten (CSV)
-│   └── logs/              # Logfiles
-├── docs/
-│   └── README.md
-├── tests/
-└── requirements.txt
-
+            alienpimp/
+            ├── tui.py                 # TUI-Frontend
+            ├── core/
+            │   ├── module_manager.py  # Verwaltung von Modulen & Paketen
+            │   ├── snippet_db.py      # Datenbank-Backend (SQLAlchemy)
+            │   ├── recommender.py     # Angriffsempfehlungen & KI-Integration
+            │   └── jan_connector.py   # Schnittstelle zu JAN
+            ├── data/
+            │   ├── snippets.json      # Snippet-Sammlung (JSON)
+            │   ├── metadata.csv       # Metadaten (CSV)
+            │   └── logs/              # Logfiles
+            ├── docs/
+            │   └── README.md
+            ├── tests/
+            └── requirements.txt
+            
 JAN-Integration
 
 alien pimp nutzt das JAN-Framework als Orchestrator für verteilte, netzwerkbasierte Abläufe.
 Funktionen:
-
     Steuerung und Verteilung von Aufgaben über JAN-Knoten
-
     Remote-Ausführung und Monitoring von Pentest-Workflows
-
     API-Anbindung für automatisierte Prozesse
 
 Modulare Paket- und Snippet-Verwaltung
-
     Tools, Exploits und Skripte werden als eigenständige, versionierte Pakete oder Snippets verwaltet.
-
     Snippets sind in einer Datenbank (SQLAlchemy) abgelegt, inklusive Metadaten (CSV) und Dokumentation.
-
     Einfache Installation, Aktualisierung und Entfernung von Modulen.
-
     Unterstützung für Python-venv und Docker-Container für maximale Isolation.
-
 Text User Interface (TUI)
-
     Bedienung über eine intuitive, textbasierte Oberfläche (z.B. mit curses, npyscreen oder urwid)
 
     Übersichtliche Menüs, Such- und Filterfunktionen
@@ -192,4 +152,4 @@ Bitte lies die CONTRIBUTING.md für Hinweise zum Mitmachen.
 Lizenz
 
 MIT License
-(c) 2025 [Dein Name oder Team]
+(c) 2025 [M4tt~H4ck]
