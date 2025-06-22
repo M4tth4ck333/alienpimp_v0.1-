@@ -1,9 +1,35 @@
 # 👽 AlienPimp – Modularer Paketmanager & Mutationsmaschine
+  Vision: JanServer als modularer Paket-Build- und Management-Hub
+  Konzept:
+    Central ORM in SQLite3:
+    Paket-Metadaten, Build-Status, Abhängigkeiten, Versionshistorie
+    Templates als DB-Objekte:
+    Für setup.py, PKGBUILD, rpm spec, Dockerfile, venv config u.v.m.
+    So kann man Build-Skripte dynamisch erzeugen, anpassen, versionieren
 
-AlienPimp ist dein galaktischer Begleiter zum Verwalten, Modulieren und Konvertieren von Softwarepaketen  
-(.deb, .rpm, src, Python-Setups & venvs) – per CLI, GUI oder Webinterface.  
+    Modulare Build-Engines:
+        gcc für native C/C++ Pakete
+        python Interpreter für PyPI- oder virtuelle Umgebungen
+        rpm-build und makepkg als native Linux-Paketbauer
+        docker für containerisierte Builds
+    Jan_Schroeder :
+    Ein Service (z.B. Flask/FastAPI mit SQLite DB), der
 
----
+        Build-Aufträge annimmt
+
+        Templates rendert (z.B. mit Jinja2)
+
+        Build-Prozesse orchestriert
+
+        Status & Logs zentral verwaltet
+
+        per API Steuerung erlaubt (auch CLI und GUI Clients)
+
+    Github-Repo als Single Source of Truth:
+
+        Alle Templates, Skripte, Source-Codes, Metadaten versioniert
+
+        JanServer kann daraus seine Arbeit ziehen, neue Pakete pushen, Versionen auslesen
 
 ## 🚀 Features
 
@@ -26,7 +52,44 @@ AlienPimp läuft bequem als WSGI-App auf Apache mit `mod_wsgi`:
 3. Apache-Site konfigurieren mit `WSGIScriptAlias`  
 4. Paket-Repositories per Apache statisch hosten  
 5. Alternativ REST-API via Flask/FastAPI erweitern  
+Vision: JanServer als modularer Paket-Build- und Management-Hub
+Konzept:
 
+    Central ORM in SQLite3:
+    Paket-Metadaten, Build-Status, Abhängigkeiten, Versionshistorie
+
+    Templates als DB-Objekte:
+    Für setup.py, PKGBUILD, rpm spec, Dockerfile, venv config u.v.m.
+    So kann man Build-Skripte dynamisch erzeugen, anpassen, versionieren
+
+    Modulare Build-Engines:
+
+        gcc für native C/C++ Pakete
+
+        python Interpreter für PyPI- oder virtuelle Umgebungen
+
+        rpm-build und makepkg als native Linux-Paketbauer
+
+        docker für containerisierte Builds
+
+    JanServer:
+    Ein Service (z.B. Flask/FastAPI mit SQLite DB), der
+
+        Build-Aufträge annimmt
+
+        Templates rendert (z.B. mit Jinja2)
+
+        Build-Prozesse orchestriert
+
+        Status & Logs zentral verwaltet
+
+        per API Steuerung erlaubt (auch CLI und GUI Clients)
+
+    Github-Repo als Single Source of Truth:
+
+        Alle Templates, Skripte, Source-Codes, Metadaten versioniert
+
+        JanServer kann daraus seine Arbeit ziehen, neue Pakete pushen, Versionen auslesen
 ---
 
 ## ⚡ CLI-Beispiele
@@ -39,13 +102,32 @@ alienpimp venv create myproject --hash
 🧩 Verzeichnisstruktur
 
 alienpimp/
-├── alienpimp/          # Core-Module & Tools
-├── cli/                # Command-Line Interface
-├── gui/                # Tkinter GUI
-├── web/                # Flask/FastAPI Web-API (optional)
-├── docs/
+├── core/
+│   ├── orm.py                # SQLite ORM (Pakete, Templates, Builds)
+│   ├── builder.py            # Schnittstelle zu Buildsystemen
+│   ├── template_manager.py   # Template-Handling (Jinja2)
+│   └── pkg_utils.py          # SHA256, Dateimanagement, Parser
+│
+├── api/
+│   ├── server.py             # Flask/FastAPI API Server
+│   ├── auth.py               # Auth-Mechanismen (optional)
+│   └── schemas.py            # Pydantic Modelle
+│
+├── cli/
+│   └── client.py             # CLI Client für JanServer API
+│
+├── gui/
+│   └── alien_manager.py      # Tkinter GUI Client
+│
+├── templates/
+│   ├── setup_py.j2
+│   ├── PKGBUILD.j2
+│   ├── rpm_spec.j2
+│   ├── Dockerfile.j2
+│   └── venv_config.j2
+│
+├── tests/
 ├── Dockerfile
-├── requirements.txt
 └── README.md
 
 🚀 Schnellstart
@@ -55,11 +137,10 @@ cd alienpimp
 pip install -r requirements.txt
 python3 run.py
 
-🧑‍🚀 Autor
+🧑‍🚀 Autor m4tt~h4ck
 
 Jan Schröder – „Der AlienPimp der Paketwelt“
 ⚖️ Lizenz
-
 MIT – Mach, was du willst.
 
 👽 Ready to pimp your packages?
