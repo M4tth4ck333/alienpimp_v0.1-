@@ -1,4 +1,4 @@
-# 👽 AlienManager – Portable CLI & GUI Package Tracker
+# 👽 alienpimp – Portable CLI & GUI Package Tracker
 
 **AlienManager** ist ein portables, containerisierbares Tool zur Verwaltung und Hash-Überprüfung von Softwarepaketen. Es bietet:
 
