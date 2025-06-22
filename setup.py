@@ -8,7 +8,7 @@ setup(
     long_description_content_type="text/markdown",
     author="Dein Name",
     author_email="deine@email.de",
-    url="https://github.com/DEINUSERNAME/alienpimp",
+    url="https://github.com/M4tth4ck333/alienpimp_v0.1-/blob/main/setup.py",
     license="MIT",
     packages=find_packages(),
     include_package_data=True,
