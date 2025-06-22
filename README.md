@@ -1,185 +1,114 @@
-alien pimp
-    
-    ## Ziel
-    Alle Module (Tools) sollen flexibel und dynamisch angebunden werden können – je nach technischer Möglichkeit und Einsatzzweck.
-    ## Integrationsarten
-    
-    ### 1. CLI (Command Line Interface)
-    - **Was?**: Das Tool wird wie im Terminal direkt per Befehl gestartet.
-    - **Beispiel**: recon-ng, msfconsole, setoolkit
-    - **Integration im System**: Über Python `subprocess`-Aufrufe werden Befehle ausgeführt und die Ausgabe verarbeitet.
-    - **Vorteile**: Schnell, keine tiefere Integration nötig, funktioniert mit fast allen Tools.
-    - **Nachteile**: Fehler- und Ausgabe-Parsing nötig, weniger Kontrolle über interne Abläufe.
-    
-    ### 2. API (Application Programming Interface)
-    - **Was?**: Das Tool oder die Plattform bietet eine (meist REST-) API zur Fernsteuerung.
-    - **Beispiel**: Pentest-Tools.com API, Burp Suite REST API, viele Cloud-Scanner
-    - **Integration im System**: Über Python-HTTP-Requests (z.B. `requests`-Bibliothek) werden Funktionen direkt angesteuert.
-    - **Vorteile**: Strukturierte Rückgaben, oft für Automatisierung und Remote-Workflows geeignet.
-    - **Nachteile**: Authentifizierung/API-Key nötig, evtl. Funktionsumfang begrenzt.
-    
-    ### 3. Bibliothek (Library)
-    - **Was?**: Das Tool ist als Python- oder andere Programmbibliothek verfügbar und kann direkt importiert werden.
-    - **Beispiel**: nmap-python, shodan, eigene Module
-    - **Integration im System**: Direktes Importieren und Aufrufen der Funktionen im eigenen Code.
-    - **Vorteile**: Maximale Kontrolle, beste Integration, Fehlerbehandlung direkt möglich.
-    - **Nachteile**: Nicht jedes Tool bietet eine Bibliothek, Updates müssen ggf. manuell gepflegt werden.
-    
-    ---
-    
-    ## Umsetzung im Projekt
-    
-    - Jedes Modul bekommt im Metadaten-Dictionary einen Typ (`cli`, `api`, `lib`) und die nötigen Aufrufparameter.
-    - Die Hauptlogik entscheidet dynamisch, wie das Modul angesteuert wird.
-    - Ziel: Maximale Flexibilität und Kompatibilität mit möglichst vielen Tools und Plattformen.
-    - alien pimp bietet eine zentrale, intuitive Steuerzentrale für Pentest- und Red-Teaming-Tools.
-        Es ermöglicht das Management, die Ausführung und die Dokumentation von Code-Snippets,
-        Exploits und Modulen in einer flexiblen,
-        erweiterbaren Umgebung. Die Integration mit dem Joint Areal Network (JAN),
-        macht verteilte und automatisierte Abläufe möglich.
-    
-    Hauptfunktionen
-    
-        Modulare Verwaltung von Tools, Skripten und Code-Snippets
-        Integration mit JAN für verteilte und orchestrierte Abläufe
-        Text User Interface (TUI) für schnelle, terminalbasierte Bedienung
-        Datenbankgestützte Organisation aller Aktivitäten, Snippets und Logs
-        Automatisierte Angriffsempfehlungen auf Basis von Kontext und Historie
-        KI-Kompatibilität (PyTorch) für fortgeschrittene Analysen und Empfehlungen
-        Umfassende Dokumentation & Logging aller Aktionen und Ergebnisse
-        Exportfunktionen (CSV, JSON, PDF) für Reporting und Weiterverarbeitung
-    
-    Architektur
-    
-                alienpimp/
-                ├── tui.py                 # TUI-Frontend
-                ├── core/
-                │   ├── module_manager.py  # Verwaltung von Modulen & Paketen
-                │   ├── snippet_db.py      # Datenbank-Backend (SQLAlchemy)
-                │   ├── recommender.py     # Angriffsempfehlungen & KI-Integration
-                │   └── jan_connector.py   # Schnittstelle zu JAN
-                ├── data/
-                │   ├── snippets.json      # Snippet-Sammlung (JSON)
-                │   ├── metadata.csv       # Metadaten (CSV)
-                │   └── logs/              # Logfiles
-                ├── docs/
-                │   └── README.md
-                ├── tests/
-                └── requirements.txt
-                
-JAN-Integration
+# 👽 AlienManager – Portable CLI & GUI Package Tracker
 
-alien pimp nutzt das JAN-Framework als Orchestrator
-für verteilte, netzwerkbasierte Abläufe.
-Funktionen:
-    Steuerung und Verteilung von Aufgaben über JAN-Knoten
-    Remote-Ausführung und Monitoring von Pentest-Workflows
-    API-Anbindung für automatisierte Prozesse
+**AlienManager** ist ein portables, containerisierbares Tool zur Verwaltung und Hash-Überprüfung von Softwarepaketen. Es bietet:
 
-Modulare Paket- und Snippet-Verwaltung
-    Tools, Exploits und Skripte werden als eigenständige, versionierte Pakete oder Snippets verwaltet.
-    Snippets sind in einer Datenbank (SQLAlchemy) abgelegt, inklusive Metadaten (CSV) und Dokumentation.
-    Einfache Installation, Aktualisierung und Entfernung von Modulen.
-    Unterstützung für Python-venv und Docker-Container für maximale Isolation.
-Text User Interface (TUI)
-    Bedienung über eine intuitive, textbasierte Oberfläche (z.B. mit curses, npyscreen oder urwid)
+- 📦 SQL-basierte Datenhaltung (SQLite)
+- 🖥️ Interaktive TUI (cmd2) **und** GUI (Tkinter)
+- 🔢 SHA256-Verifikation
+- 🐚 Bash-kompatible CLI-Einzeiler
+- 🐳 Docker-Unterstützung
 
-    Übersichtliche Menüs, Such- und Filterfunktionen
+---
 
-    Live-Loganzeige und Statusmonitoring
+## 🚀 Features
 
-    Integration von Editoren wie nano und idle3 für schnelle Anpassungen
+- ✅ `add`, `list`, `remove` – direkt über Bash oder GUI
+- ✅ SHA256-Hashing für lokale Dateien
+- ✅ Automatische Zeitstempel
+- ✅ SQLite statt JSON/CSV
+- ✅ Optionales GUI-Frontend mit Dateiauswahl
+- ✅ Colorized CLI mit `colorama`
+- ✅ Vollständig portabel, keine externen Server nötig
 
-Datenbank & Logging
+---
 
-    Speicherung aller Aktionen, Snippet-Änderungen und Empfehlungen in einer SQLite- oder PostgreSQL-Datenbank
+## 🔧 Installation
 
-    Automatisches Logging jeder Aktivität (ausführbar als CSV, JSON oder PDF)
+### 1. Klonen
 
-    Nachvollziehbarkeit und Reporting für Audits und Teamarbeit
+```bash
+git clone https://github.com/dein-benutzername/alienmanager.git
+cd alienmanager
 
-KI-Kompatibilität (PyTorch)
-
-    Anbindung von PyTorch-Modellen für Angriffsempfehlungen, Mustererkennung und Priorisierung
-
-    Möglichkeit, eigene ML-Modelle zu trainieren und einzubinden
-
-    Nutzung von Logs und Metadaten als Trainingsdaten
-
-Sicherheit & Rechteverwaltung
-
-    Benutzer- und Rechteverwaltung für den Multi-User-Betrieb
-
-    Zugriffskontrolle auf Module, Snippets und Logs
-
-    Sichere Speicherung und Ausführung aller Komponenten
-
-Installation
-
-Voraussetzungen:
-
-    Python 3.8+
-
-    Apache2 (optional, für Web-Frontend oder API)
-
-    pip, venv
-
-    (Optional) Docker, PyTorch, JAN
-
-Installation:
-
-bash
-git clone https://github.com/DEINUSERNAME/alienpimp.git
-
-cd alienpimp
+2. Abhängigkeiten installieren
 
 pip install -r requirements.txt
 
-python tui.py
+    Oder: per venv
 
-Beispiel-Workflows
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 
-Snippet ausführen:
+📦 CLI-Nutzung
 
-bash
-python tui.py --run --snippet "wifi_attack"
+# Paket hinzufügen (mit SHA256)
+python3 cli.py add <name> <version> <quelle> /pfad/zur/datei.tar.gz
 
-Tool installieren:
+# Liste anzeigen
+python3 cli.py list
 
-bash
-python tui.py --install "nmap"
+# Paket löschen
+python3 cli.py remove <name>
 
-Angriffsempfehlung erhalten:
+    Tipp: .bashrc erweitern
 
-bash
-python tui.py --recommend --context "webapp"
+alias alien='python3 /voller/pfad/zu/cli.py'
 
-Remote-Workflow über JAN starten:
+Dann:
 
-bash
-python tui.py --jan --task "distributed_scan"
+alien add testpkg 1.0 github /tmp/test.tar.gz
+alien list
 
-Roadmap
+🖼️ GUI starten
 
-    TUI-Frontend fertigstellen
+python3 gui.py
 
-    Datenbank-Backend (SQLAlchemy) implementieren
+🐳 Docker (optional)
 
-    JAN-Integration testen und dokumentieren
+docker build -t aliencli .
+docker run -it --rm aliencli
 
-    KI-Module (PyTorch) für Empfehlungen anbinden
+🗃️ Datenhaltung
 
-    Logging & Reporting erweitern
+Die Daten werden standardmäßig in db.sqlite3 gespeichert.
+Spalte	Beschreibung
+name	Paketname
+version	Versionsnummer
+source	Quelle (z. B. github)
+timestamp	ISO-Zeitstempel
+sha256	SHA256-Hash der Datei
+📁 Struktur
 
-    Benutzerverwaltung implementieren
+alienmanager/
+├── cli.py         # Bash & cmd2 Entry Point
+├── gui.py         # Tkinter GUI
+├── orm.py         # SQLite ORM
+├── db.sqlite3     # SQLite-Datenbank
+├── Dockerfile     # Container Support
+├── requirements.txt
+└── README.md
 
-    Community- und Entwicklerdokumentation ausbauen
+💡 Ideen für Erweiterungen
 
-Mitmachen
+    🔍 Paketdetailsuche (search)
 
-Pull Requests, Bug Reports und Feature-Vorschläge sind jederzeit willkommen!
-Bitte lies die CONTRIBUTING.md für Hinweise zum Mitmachen.
-Lizenz
+    🌍 Remote-Sync (optional)
 
-MIT License
-(c) 2025 [M4tt~H4ck]
+    📊 Export als Markdown oder HTML
+
+    🧩 Plugin-System
+
+    📦 Paket als .deb oder .AppImage
+
+🤝 Mitwirken
+
+Pull Requests & Vorschläge sind willkommen!
+⚖️ Lizenz
+
+MIT – Freie Nutzung für jedes Projekt.
+👨‍💻 Autor
+
+Jan Schröder
+
+    Entwicklung & Idee: CLI-Paketmanagement mit Fokus auf Transparenz und Reproduzierbarkeit.
