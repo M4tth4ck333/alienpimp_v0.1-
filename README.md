@@ -1,114 +1,66 @@
-# 👽 alienpimp – Portable CLI & GUI Package Tracker
+# 👽 AlienPimp – Modularer Paketmanager & Mutationsmaschine
 
-**AlienManager** ist ein portables, containerisierbares Tool zur Verwaltung und Hash-Überprüfung von Softwarepaketen. Es bietet:
-
-- 📦 SQL-basierte Datenhaltung (SQLite)
-- 🖥️ Interaktive TUI (cmd2) **und** GUI (Tkinter)
-- 🔢 SHA256-Verifikation
-- 🐚 Bash-kompatible CLI-Einzeiler
-- 🐳 Docker-Unterstützung
+AlienPimp ist dein galaktischer Begleiter zum Verwalten, Modulieren und Konvertieren von Softwarepaketen  
+(.deb, .rpm, src, Python-Setups & venvs) – per CLI, GUI oder Webinterface.  
 
 ---
 
 ## 🚀 Features
 
-- ✅ `add`, `list`, `remove` – direkt über Bash oder GUI
-- ✅ SHA256-Hashing für lokale Dateien
-- ✅ Automatische Zeitstempel
-- ✅ SQLite statt JSON/CSV
-- ✅ Optionales GUI-Frontend mit Dateiauswahl
-- ✅ Colorized CLI mit `colorama`
-- ✅ Vollständig portabel, keine externen Server nötig
+- Paketkonvertierung zwischen `.deb`, `.rpm`, `.src` und mehr  
+- Automatisierte Python-Setup- und virtuelle Umgebungs-Erstellung  
+- SQLite-basierte Paketdatenbank mit Hash-Verifikation  
+- Modular erweiterbar für WiFi, OSINT & mehr  
+- Bedienbar als CLI-Tool, Tkinter-GUI oder Webservice  
+- Webhosting-ready für Apache mit mod_wsgi  
+- Containerisierbar via Docker
 
 ---
 
-## 🔧 Installation
+## 🖥 Deployment auf Apache
 
-### 1. Klonen
+AlienPimp läuft bequem als WSGI-App auf Apache mit `mod_wsgi`:
+
+1. Mod_wsgi installieren und aktivieren  
+2. AlienPimp als Python WSGI-App einrichten (`alienpimp.wsgi`)  
+3. Apache-Site konfigurieren mit `WSGIScriptAlias`  
+4. Paket-Repositories per Apache statisch hosten  
+5. Alternativ REST-API via Flask/FastAPI erweitern  
+
+---
+
+## ⚡ CLI-Beispiele
 
 ```bash
-git clone https://github.com/dein-benutzername/alienmanager.git
-cd alienmanager
+alienpimp convert foo.deb --to rpm
+alienpimp generate setup myproject/
+alienpimp venv create myproject --hash
 
-2. Abhängigkeiten installieren
+🧩 Verzeichnisstruktur
 
-pip install -r requirements.txt
-
-    Oder: per venv
-
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
-📦 CLI-Nutzung
-
-# Paket hinzufügen (mit SHA256)
-python3 cli.py add <name> <version> <quelle> /pfad/zur/datei.tar.gz
-
-# Liste anzeigen
-python3 cli.py list
-
-# Paket löschen
-python3 cli.py remove <name>
-
-    Tipp: .bashrc erweitern
-
-alias alien='python3 /voller/pfad/zu/cli.py'
-
-Dann:
-
-alien add testpkg 1.0 github /tmp/test.tar.gz
-alien list
-
-🖼️ GUI starten
-
-python3 gui.py
-
-🐳 Docker (optional)
-
-docker build -t aliencli .
-docker run -it --rm aliencli
-
-🗃️ Datenhaltung
-
-Die Daten werden standardmäßig in db.sqlite3 gespeichert.
-Spalte	Beschreibung
-name	Paketname
-version	Versionsnummer
-source	Quelle (z. B. github)
-timestamp	ISO-Zeitstempel
-sha256	SHA256-Hash der Datei
-📁 Struktur
-
-alienmanager/
-├── cli.py         # Bash & cmd2 Entry Point
-├── gui.py         # Tkinter GUI
-├── orm.py         # SQLite ORM
-├── db.sqlite3     # SQLite-Datenbank
-├── Dockerfile     # Container Support
+alienpimp/
+├── alienpimp/          # Core-Module & Tools
+├── cli/                # Command-Line Interface
+├── gui/                # Tkinter GUI
+├── web/                # Flask/FastAPI Web-API (optional)
+├── docs/
+├── Dockerfile
 ├── requirements.txt
 └── README.md
 
-💡 Ideen für Erweiterungen
+🚀 Schnellstart
 
-    🔍 Paketdetailsuche (search)
+git clone https://github.com/dein-benutzername/alienpimp.git
+cd alienpimp
+pip install -r requirements.txt
+python3 run.py
 
-    🌍 Remote-Sync (optional)
+🧑‍🚀 Autor
 
-    📊 Export als Markdown oder HTML
-
-    🧩 Plugin-System
-
-    📦 Paket als .deb oder .AppImage
-
-🤝 Mitwirken
-
-Pull Requests & Vorschläge sind willkommen!
+Jan Schröder – „Der AlienPimp der Paketwelt“
 ⚖️ Lizenz
 
-MIT – Freie Nutzung für jedes Projekt.
-👨‍💻 Autor
+MIT – Mach, was du willst.
 
-Jan Schröder
-
-    Entwicklung & Idee: CLI-Paketmanagement mit Fokus auf Transparenz und Reproduzierbarkeit.
+👽 Ready to pimp your packages?
+Let the mutation begin!
