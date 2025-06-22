@@ -1,6 +1,6 @@
 """
-Erweiterte AlienPimpORM mit Metadaten und Joint Areal Network (JAN) Funktionalität
-Basiert auf: https://github.com/M4tth4ck333/alienpimp_v0.1-/blob/main/orm.py
+Enhanced AlienPimpORM with Metadata and Joint Areal Network (JAN) Functionality
+Extended with EtherApe-inspired network visualization capabilities
 """
 
 import sqlite3
@@ -10,15 +10,18 @@ import csv
 import networkx as nx
 import pandas as pd
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any, Union
 from dataclasses import dataclass, asdict
 import logging
 from pathlib import Path
+import hashlib
+import time
+from urllib.parse import urlparse
 
 
 @dataclass
 class GitHubMetadata:
-    """Struktur für GitHub-spezifische Metadaten"""
+    """Structure for GitHub-specific metadata"""
     github_url: str
     stars: int = 0
     forks: int = 0
@@ -37,18 +40,32 @@ class GitHubMetadata:
             self.topics = []
 
 
+@dataclass 
+class NetworkMetrics:
+    """Network analysis metrics for packages"""
+    centrality_betweenness: float = 0.0
+    centrality_closeness: float = 0.0
+    centrality_eigenvector: float = 0.0
+    clustering_coefficient: float = 0.0
+    degree_in: int = 0
+    degree_out: int = 0
+    pagerank: float = 0.0
+
+
 class ExtendedAlienPimpORM:
     """
-    Erweiterte AlienPimpORM mit Metadaten-Management und Netzwerk-Analyse
+    Extended AlienPimpORM with metadata management and network analysis
+    Inspired by EtherApe's network visualization concepts
     """
     
     def __init__(self, database_path: str = "alienpimp_extended.db"):
         self.database_path = database_path
         self.logger = self._setup_logging()
         self._initialize_database()
+        self._graph = nx.DiGraph()  # Directed graph for package relationships
         
     def _setup_logging(self) -> logging.Logger:
-        """Richtet Logging ein"""
+        """Set up logging configuration"""
         logger = logging.getLogger('AlienPimpORM')
         logger.setLevel(logging.INFO)
         
@@ -61,11 +78,11 @@ class ExtendedAlienPimpORM:
         return logger
     
     def _initialize_database(self):
-        """Initialisiert die erweiterte Datenbankstruktur"""
+        """Initialize the extended database structure"""
         with sqlite3.connect(self.database_path) as conn:
             cursor = conn.cursor()
             
-            # Haupttabelle für Pakete (erweitert)
+            # Main packages table (extended)
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS packages (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -74,15 +91,19 @@ class ExtendedAlienPimpORM:
                     source TEXT,
                     description TEXT,
                     metadata JSON,
+                    github_metadata JSON,
+                    network_metrics JSON,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     last_analyzed TIMESTAMP,
                     quality_score REAL DEFAULT 0.0,
-                    popularity_score REAL DEFAULT 0.0
+                    popularity_score REAL DEFAULT 0.0,
+                    security_score REAL DEFAULT 0.0,
+                    hash_signature TEXT
                 )
             ''')
             
-            # Abhängigkeiten-Tabelle
+            # Dependencies table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS dependencies (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -90,13 +111,14 @@ class ExtendedAlienPimpORM:
                     dependency_name TEXT NOT NULL,
                     dependency_version TEXT,
                     dependency_type TEXT DEFAULT 'runtime',
+                    is_optional BOOLEAN DEFAULT FALSE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (package_id) REFERENCES packages (id),
                     UNIQUE(package_id, dependency_name)
                 )
             ''')
             
-            # Netzwerk-Beziehungen für Joint Areal Network
+            # Network relationships for Joint Areal Network
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS package_networks (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -106,547 +128,476 @@ class ExtendedAlienPimpORM:
                     strength REAL DEFAULT 1.0,
                     metadata JSON,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (package_from_id) REFERENCES packages (id),
                     FOREIGN KEY (package_to_id) REFERENCES packages (id),
                     UNIQUE(package_from_id, package_to_id, relation_type)
                 )
             ''')
             
-            # Maintainer/Authors Tabelle
+            # Analysis history for tracking changes
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS maintainers (
+                CREATE TABLE IF NOT EXISTS analysis_history (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     package_id INTEGER,
-                    name TEXT NOT NULL,
-                    email TEXT,
-                    github_username TEXT,
-                    role TEXT DEFAULT 'maintainer',
+                    analysis_type TEXT,
+                    results JSON,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (package_id) REFERENCES packages (id)
                 )
             ''')
             
-            # Indizes für Performance
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_packages_name ON packages (name)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_dependencies_package ON dependencies (package_id)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_dependencies_name ON dependencies (dependency_name)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_networks_from ON package_networks (package_from_id)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_networks_to ON package_networks (package_to_id)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_maintainers_package ON maintainers (package_id)')
+            # Create indexes for performance
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_packages_name ON packages(name)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_dependencies_package_id ON dependencies(package_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_networks_from_to ON package_networks(package_from_id, package_to_id)')
             
             conn.commit()
-            self.logger.info("Datenbank initialisiert")
     
-    def fetch_github_metadata(self, repo_url: str, github_token: Optional[str] = None) -> Optional[GitHubMetadata]:
-        """
-        Holt Metadaten von GitHub-Repository
-        
-        Args:
-            repo_url: GitHub Repository URL
-            github_token: Optional GitHub Personal Access Token für höhere Rate Limits
-        
-        Returns:
-            GitHubMetadata oder None bei Fehler
-        """
+    def add_package(self, name: str, version: str = None, source: str = None, 
+                   description: str = None, metadata: Dict = None,
+                   github_url: str = None) -> int:
+        """Add a new package to the database"""
         try:
-            # Extrahiere Owner/Repo aus URL
-            if 'github.com' not in repo_url:
-                return None
+            with sqlite3.connect(self.database_path) as conn:
+                cursor = conn.cursor()
                 
-            parts = repo_url.replace('https://github.com/', '').replace('.git', '').split('/')
-            if len(parts) < 2:
-                return None
+                # Generate hash signature
+                hash_data = f"{name}:{version}:{source}"
+                hash_signature = hashlib.sha256(hash_data.encode()).hexdigest()
                 
-            owner, repo = parts[0], parts[1]
-            api_url = f"https://api.github.com/repos/{owner}/{repo}"
-            
-            headers = {'Accept': 'application/vnd.github.v3+json'}
-            if github_token:
-                headers['Authorization'] = f'token {github_token}'
-            
-            response = requests.get(api_url, headers=headers, timeout=30)
-            
-            if response.status_code == 200:
-                data = response.json()
+                # Fetch GitHub metadata if URL provided
+                github_metadata = None
+                if github_url:
+                    github_metadata = self._fetch_github_metadata(github_url)
                 
-                return GitHubMetadata(
-                    github_url=repo_url,
-                    stars=data.get('stargazers_count', 0),
-                    forks=data.get('forks_count', 0),
-                    watchers=data.get('watchers_count', 0),
-                    last_commit=data.get('pushed_at'),
-                    language=data.get('language'),
-                    topics=data.get('topics', []),
-                    license=data.get('license', {}).get('name') if data.get('license') else None,
-                    open_issues=data.get('open_issues_count', 0),
-                    size=data.get('size', 0),
-                    created_at=data.get('created_at'),
-                    updated_at=data.get('updated_at')
-                )
-            else:
-                self.logger.warning(f"GitHub API Fehler {response.status_code} für {repo_url}")
-                return None
+                cursor.execute('''
+                    INSERT OR REPLACE INTO packages 
+                    (name, version, source, description, metadata, github_metadata, 
+                     updated_at, hash_signature)
+                    VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+                ''', (name, version, source, description, 
+                      json.dumps(metadata or {}),
+                      json.dumps(asdict(github_metadata)) if github_metadata else None,
+                      hash_signature))
+                
+                package_id = cursor.lastrowid
+                self.logger.info(f"Added package: {name} (ID: {package_id})")
+                return package_id
                 
         except Exception as e:
-            self.logger.error(f"Fehler beim Abrufen der GitHub-Metadaten für {repo_url}: {e}")
-            return None
+            self.logger.error(f"Error adding package {name}: {e}")
+            raise
     
-    def add_package_with_github(self, name: str, version: str, source: str, 
-                               github_url: str, dependencies: List[str] = None,
-                               description: str = None, github_token: str = None) -> int:
-        """
-        Fügt ein Paket mit automatischer GitHub-Metadaten-Anreicherung hinzu
-        
-        Returns:
-            Package ID
-        """
-        # GitHub-Metadaten abrufen
-        github_metadata = self.fetch_github_metadata(github_url, github_token)
-        
-        # Kombiniere alle Metadaten
-        metadata = {
-            'github_url': github_url,
-            'enriched_at': datetime.now().isoformat()
-        }
-        
-        if github_metadata:
-            metadata.update(asdict(github_metadata))
+    def _fetch_github_metadata(self, github_url: str) -> Optional[GitHubMetadata]:
+        """Fetch metadata from GitHub API"""
+        try:
+            # Parse GitHub URL to get owner/repo
+            parsed = urlparse(github_url)
+            path_parts = parsed.path.strip('/').split('/')
             
-        # Berechne Qualitäts- und Popularitätscore
-        quality_score = self._calculate_quality_score(github_metadata)
-        popularity_score = self._calculate_popularity_score(github_metadata)
-        
-        with sqlite3.connect(self.database_path) as conn:
-            cursor = conn.cursor()
-            
-            # Paket einfügen/aktualisieren
-            cursor.execute('''
-                INSERT OR REPLACE INTO packages 
-                (name, version, source, description, metadata, updated_at, 
-                 last_analyzed, quality_score, popularity_score)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (name, version, source, description, json.dumps(metadata),
-                  datetime.now().isoformat(), datetime.now().isoformat(),
-                  quality_score, popularity_score))
-            
-            package_id = cursor.lastrowid or cursor.execute(
-                'SELECT id FROM packages WHERE name = ?', (name,)
-            ).fetchone()[0]
-            
-            # Abhängigkeiten hinzufügen
-            if dependencies:
-                # Alte Abhängigkeiten entfernen
-                cursor.execute('DELETE FROM dependencies WHERE package_id = ?', (package_id,))
+            if len(path_parts) >= 2:
+                owner, repo = path_parts[0], path_parts[1]
+                api_url = f"https://api.github.com/repos/{owner}/{repo}"
                 
-                # Neue Abhängigkeiten hinzufügen
-                for dep in dependencies:
-                    cursor.execute('''
-                        INSERT OR IGNORE INTO dependencies (package_id, dependency_name)
-                        VALUES (?, ?)
-                    ''', (package_id, dep))
+                response = requests.get(api_url, timeout=30)
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    return GitHubMetadata(
+                        github_url=github_url,
+                        stars=data.get('stargazers_count', 0),
+                        forks=data.get('forks_count', 0),
+                        watchers=data.get('watchers_count', 0),
+                        language=data.get('language'),
+                        topics=data.get('topics', []),
+                        license=data.get('license', {}).get('name') if data.get('license') else None,
+                        open_issues=data.get('open_issues_count', 0),
+                        size=data.get('size', 0),
+                        created_at=data.get('created_at'),
+                        updated_at=data.get('updated_at')
+                    )
+                    
+        except Exception as e:
+            self.logger.warning(f"Failed to fetch GitHub metadata for {github_url}: {e}")
             
-            conn.commit()
-            self.logger.info(f"Paket {name} mit GitHub-Metadaten hinzugefügt (ID: {package_id})")
-            return package_id
+        return None
     
-    def _calculate_quality_score(self, github_metadata: Optional[GitHubMetadata]) -> float:
-        """Berechnet einen Qualitätsscore basierend auf GitHub-Metadaten"""
-        if not github_metadata:
-            return 0.0
+    def add_dependency(self, package_id: int, dependency_name: str, 
+                      dependency_version: str = None, dependency_type: str = 'runtime',
+                      is_optional: bool = False):
+        """Add a dependency relationship"""
+        try:
+            with sqlite3.connect(self.database_path) as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute('''
+                    INSERT OR REPLACE INTO dependencies 
+                    (package_id, dependency_name, dependency_version, dependency_type, is_optional)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (package_id, dependency_name, dependency_version, dependency_type, is_optional))
+                
+                conn.commit()
+                self.logger.info(f"Added dependency: {dependency_name} for package ID {package_id}")
+                
+        except Exception as e:
+            self.logger.error(f"Error adding dependency: {e}")
+            raise
+    
+    def add_network_relationship(self, package_from_id: int, package_to_id: int,
+                               relation_type: str, strength: float = 1.0,
+                               metadata: Dict = None):
+        """Add a network relationship between packages (EtherApe-inspired)"""
+        try:
+            with sqlite3.connect(self.database_path) as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute('''
+                    INSERT OR REPLACE INTO package_networks 
+                    (package_from_id, package_to_id, relation_type, strength, metadata, last_updated)
+                    VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ''', (package_from_id, package_to_id, relation_type, strength, 
+                      json.dumps(metadata or {})))
+                
+                conn.commit()
+                
+                # Update in-memory graph
+                self._update_graph()
+                
+                self.logger.info(f"Added network relationship: {package_from_id} -> {package_to_id} ({relation_type})")
+                
+        except Exception as e:
+            self.logger.error(f"Error adding network relationship: {e}")
+            raise
+    
+    def _update_graph(self):
+        """Update the in-memory NetworkX graph"""
+        try:
+            self._graph.clear()
             
-        score = 0.0
+            with sqlite3.connect(self.database_path) as conn:
+                cursor = conn.cursor()
+                
+                # Add nodes (packages)
+                cursor.execute('SELECT id, name FROM packages')
+                for package_id, name in cursor.fetchall():
+                    self._graph.add_node(package_id, name=name)
+                
+                # Add edges (relationships)
+                cursor.execute('''
+                    SELECT package_from_id, package_to_id, relation_type, strength 
+                    FROM package_networks
+                ''')
+                for from_id, to_id, rel_type, strength in cursor.fetchall():
+                    self._graph.add_edge(from_id, to_id, 
+                                       relation_type=rel_type, 
+                                       weight=strength)
+                
+        except Exception as e:
+            self.logger.error(f"Error updating graph: {e}")
+    
+    def calculate_network_metrics(self, package_id: int) -> NetworkMetrics:
+        """Calculate network metrics for a package (EtherApe-inspired analysis)"""
+        if self._graph.number_of_nodes() == 0:
+            self._update_graph()
         
-        # Stars (0-40 Punkte, logarithmisch skaliert)
-        if github_metadata.stars > 0:
-            score += min(40, 10 * (github_metadata.stars ** 0.3))
+        if package_id not in self._graph:
+            return NetworkMetrics()
         
-        # Forks (0-20 Punkte)
-        if github_metadata.forks > 0:
-            score += min(20, 5 * (github_metadata.forks ** 0.3))
-        
-        # Aktualität (0-20 Punkte)
-        if github_metadata.last_commit:
+        try:
+            # Calculate various centrality measures
+            betweenness = nx.betweenness_centrality(self._graph).get(package_id, 0.0)
+            closeness = nx.closeness_centrality(self._graph).get(package_id, 0.0)
+            
+            # Handle eigenvector centrality (can fail on some graphs)
             try:
-                last_commit = datetime.fromisoformat(github_metadata.last_commit.replace('Z', '+00:00'))
-                days_ago = (datetime.now().replace(tzinfo=last_commit.tzinfo) - last_commit).days
-                if days_ago < 30:
-                    score += 20
-                elif days_ago < 90:
-                    score += 15
-                elif days_ago < 365:
-                    score += 10
-                elif days_ago < 730:
-                    score += 5
+                eigenvector = nx.eigenvector_centrality(self._graph).get(package_id, 0.0)
             except:
-                pass
-        
-        # Lizenz vorhanden (0-10 Punkte)
-        if github_metadata.license:
-            score += 10
-        
-        # Topics/Tags (0-10 Punkte)
-        if github_metadata.topics:
-            score += min(10, len(github_metadata.topics) * 2)
-        
-        return min(100.0, score)
+                eigenvector = 0.0
+            
+            # Calculate PageRank
+            pagerank = nx.pagerank(self._graph).get(package_id, 0.0)
+            
+            # Degree centralities
+            in_degree = self._graph.in_degree(package_id)
+            out_degree = self._graph.out_degree(package_id)
+            
+            # Clustering coefficient
+            clustering = nx.clustering(self._graph.to_undirected()).get(package_id, 0.0)
+            
+            return NetworkMetrics(
+                centrality_betweenness=betweenness,
+                centrality_closeness=closeness,
+                centrality_eigenvector=eigenvector,
+                clustering_coefficient=clustering,
+                degree_in=in_degree,
+                degree_out=out_degree,
+                pagerank=pagerank
+            )
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating network metrics for package {package_id}: {e}")
+            return NetworkMetrics()
     
-    def _calculate_popularity_score(self, github_metadata: Optional[GitHubMetadata]) -> float:
-        """Berechnet einen Popularitätsscore"""
-        if not github_metadata:
-            return 0.0
+    def analyze_package_ecosystem(self, package_id: int) -> Dict[str, Any]:
+        """Comprehensive ecosystem analysis (inspired by EtherApe's network analysis)"""
+        try:
+            if self._graph.number_of_nodes() == 0:
+                self._update_graph()
             
-        # Einfache Gewichtung: Stars (70%) + Forks (20%) + Watchers (10%)
-        score = (github_metadata.stars * 0.7 + 
-                github_metadata.forks * 0.2 + 
-                github_metadata.watchers * 0.1)
-        
-        return min(1000.0, score)  # Cap bei 1000
-    
-    def build_joint_areal_network(self) -> nx.DiGraph:
-        """
-        Erstellt ein Joint Areal Network (JAN) aus den Paketdaten
-        
-        Returns:
-            NetworkX DiGraph mit Paketen als Knoten und Beziehungen als Kanten
-        """
-        graph = nx.DiGraph()
-        
-        with sqlite3.connect(self.database_path) as conn:
-            cursor = conn.cursor()
+            metrics = self.calculate_network_metrics(package_id)
             
-            # Alle Pakete als Knoten hinzufügen
-            cursor.execute('SELECT id, name, metadata, quality_score, popularity_score FROM packages')
-            packages = cursor.fetchall()
+            # Find communities/clusters
+            undirected_graph = self._graph.to_undirected()
+            try:
+                communities = list(nx.community.greedy_modularity_communities(undirected_graph))
+                package_community = None
+                for i, community in enumerate(communities):
+                    if package_id in community:
+                        package_community = i
+                        break
+            except:
+                package_community = None
             
-            for pkg_id, name, metadata_json, quality, popularity in packages:
-                metadata = json.loads(metadata_json) if metadata_json else {}
-                
-                graph.add_node(name, 
-                              id=pkg_id,
-                              metadata=metadata,
-                              quality_score=quality,
-                              popularity_score=popularity)
+            # Find shortest paths to important packages
+            important_packages = self._get_most_important_packages(limit=10)
+            shortest_paths = {}
             
-            # Abhängigkeits-Kanten hinzufügen
-            cursor.execute('''
-                SELECT p1.name, p2.name, COUNT(*) as strength
-                FROM dependencies d
-                JOIN packages p1 ON d.package_id = p1.id
-                JOIN packages p2 ON d.dependency_name = p2.name
-                GROUP BY p1.name, p2.name
-            ''')
+            for target_id in important_packages:
+                if target_id != package_id:
+                    try:
+                        path_length = nx.shortest_path_length(self._graph, package_id, target_id)
+                        shortest_paths[target_id] = path_length
+                    except nx.NetworkXNoPath:
+                        continue
             
-            for pkg_from, pkg_to, strength in cursor.fetchall():
-                if graph.has_node(pkg_from) and graph.has_node(pkg_to):
-                    graph.add_edge(pkg_from, pkg_to, 
-                                 relation='dependency', 
-                                 weight=strength)
-            
-            # Gemeinsame Maintainer-Beziehungen
-            cursor.execute('''
-                SELECT p1.name, p2.name, COUNT(DISTINCT m1.name) as shared_maintainers
-                FROM maintainers m1
-                JOIN packages p1 ON m1.package_id = p1.id
-                JOIN maintainers m2 ON m1.name = m2.name AND m1.package_id != m2.package_id
-                JOIN packages p2 ON m2.package_id = p2.id
-                WHERE p1.id < p2.id
-                GROUP BY p1.name, p2.name
-                HAVING shared_maintainers > 0
-            ''')
-            
-            for pkg1, pkg2, shared_count in cursor.fetchall():
-                if graph.has_node(pkg1) and graph.has_node(pkg2):
-                    # Bidirektionale Kante für gemeinsame Maintainer
-                    graph.add_edge(pkg1, pkg2, 
-                                 relation='shared_maintainer', 
-                                 weight=shared_count)
-                    graph.add_edge(pkg2, pkg1, 
-                                 relation='shared_maintainer', 
-                                 weight=shared_count)
-        
-        self.logger.info(f"JAN-Graph erstellt: {graph.number_of_nodes()} Knoten, {graph.number_of_edges()} Kanten")
-        return graph
-    
-    def analyze_package_ecosystem(self, package_name: str) -> Dict[str, Any]:
-        """
-        Führt eine umfassende Ökosystem-Analyse für ein Paket durch
-        """
-        graph = self.build_joint_areal_network()
-        
-        if package_name not in graph:
-            return {'error': f'Paket {package_name} nicht gefunden'}
-        
-        analysis = {
-            'package': package_name,
-            'metadata': graph.nodes[package_name].get('metadata', {}),
-            'scores': {
-                'quality': graph.nodes[package_name].get('quality_score', 0),
-                'popularity': graph.nodes[package_name].get('popularity_score', 0)
+            analysis_result = {
+                'package_id': package_id,
+                'network_metrics': asdict(metrics),
+                'community_id': package_community,
+                'total_communities': len(communities) if communities else 0,
+                'shortest_paths_to_important': shortest_paths,
+                'analysis_timestamp': datetime.now().isoformat()
             }
-        }
-        
-        # Direkte Abhängigkeiten
-        dependencies = []
-        dependents = []
-        
-        for neighbor in graph.neighbors(package_name):
-            edge_data = graph[package_name][neighbor]
-            if edge_data.get('relation') == 'dependency':
-                dependencies.append({
-                    'name': neighbor,
-                    'weight': edge_data.get('weight', 1)
-                })
-        
-        for predecessor in graph.predecessors(package_name):
-            edge_data = graph[predecessor][package_name]
-            if edge_data.get('relation') == 'dependency':
-                dependents.append({
-                    'name': predecessor,
-                    'weight': edge_data.get('weight', 1)
-                })
-        
-        analysis['dependencies'] = dependencies
-        analysis['dependents'] = dependents
-        
-        # Ähnliche Pakete basierend auf Netzwerk-Nähe
-        similar_packages = self._find_similar_packages(graph, package_name)
-        analysis['similar_packages'] = similar_packages
-        
-        # Zentralitäts-Metriken
-        if graph.number_of_nodes() > 1:
-            try:
-                betweenness = nx.betweenness_centrality(graph)
-                closeness = nx.closeness_centrality(graph)
-                pagerank = nx.pagerank(graph)
-                
-                analysis['centrality'] = {
-                    'betweenness': betweenness.get(package_name, 0),
-                    'closeness': closeness.get(package_name, 0),
-                    'pagerank': pagerank.get(package_name, 0)
-                }
-            except:
-                analysis['centrality'] = {'error': 'Konnte Zentralität nicht berechnen'}
-        
-        return analysis
+            
+            # Store analysis in history
+            self._store_analysis_result(package_id, 'ecosystem_analysis', analysis_result)
+            
+            return analysis_result
+            
+        except Exception as e:
+            self.logger.error(f"Error in ecosystem analysis for package {package_id}: {e}")
+            raise
     
-    def _find_similar_packages(self, graph: nx.DiGraph, package_name: str, limit: int = 10) -> List[Dict]:
-        """Findet ähnliche Pakete basierend auf Netzwerk-Eigenschaften"""
-        if package_name not in graph:
+    def _get_most_important_packages(self, limit: int = 10) -> List[int]:
+        """Get most important packages based on network metrics"""
+        try:
+            if self._graph.number_of_nodes() == 0:
+                return []
+            
+            pagerank_scores = nx.pagerank(self._graph)
+            sorted_packages = sorted(pagerank_scores.items(), key=lambda x: x[1], reverse=True)
+            
+            return [package_id for package_id, _ in sorted_packages[:limit]]
+            
+        except Exception as e:
+            self.logger.error(f"Error getting important packages: {e}")
             return []
-        
-        similar = []
-        package_neighbors = set(graph.neighbors(package_name)) | set(graph.predecessors(package_name))
-        package_metadata = graph.nodes[package_name].get('metadata', {})
-        
-        for other_pkg in graph.nodes():
-            if other_pkg == package_name:
-                continue
-            
-            # Berechne Ähnlichkeit basierend auf gemeinsamen Nachbarn
-            other_neighbors = set(graph.neighbors(other_pkg)) | set(graph.predecessors(other_pkg))
-            shared_neighbors = package_neighbors & other_neighbors
-            
-            if shared_neighbors:
-                jaccard_similarity = len(shared_neighbors) / len(package_neighbors | other_neighbors)
-                
-                # Zusätzliche Ähnlichkeit basierend auf Metadaten
-                metadata_similarity = self._calculate_metadata_similarity(
-                    package_metadata, 
-                    graph.nodes[other_pkg].get('metadata', {})
-                )
-                
-                combined_similarity = (jaccard_similarity * 0.7) + (metadata_similarity * 0.3)
-                
-                similar.append({
-                    'name': other_pkg,
-                    'similarity': combined_similarity,
-                    'shared_connections': len(shared_neighbors),
-                    'quality_score': graph.nodes[other_pkg].get('quality_score', 0)
-                })
-        
-        # Sortiere nach Ähnlichkeit
-        similar.sort(key=lambda x: x['similarity'], reverse=True)
-        return similar[:limit]
     
-    def _calculate_metadata_similarity(self, meta1: Dict, meta2: Dict) -> float:
-        """Berechnet Ähnlichkeit basierend auf Metadaten"""
-        similarity = 0.0
-        
-        # Sprache
-        if meta1.get('language') and meta2.get('language'):
-            if meta1['language'] == meta2['language']:
-                similarity += 0.3
-        
-        # Topics/Tags
-        topics1 = set(meta1.get('topics', []))
-        topics2 = set(meta2.get('topics', []))
-        if topics1 or topics2:
-            topic_similarity = len(topics1 & topics2) / len(topics1 | topics2) if (topics1 | topics2) else 0
-            similarity += topic_similarity * 0.4
-        
-        # Lizenz
-        if meta1.get('license') and meta2.get('license'):
-            if meta1['license'] == meta2['license']:
-                similarity += 0.2
-        
-        # Stars-Ähnlichkeit (logarithmisch normalisiert)
-        stars1 = meta1.get('stars', 0)
-        stars2 = meta2.get('stars', 0)
-        if stars1 > 0 and stars2 > 0:
-            import math
-            log_stars1 = math.log10(stars1 + 1)
-            log_stars2 = math.log10(stars2 + 1)
-            stars_similarity = 1 - abs(log_stars1 - log_stars2) / max(log_stars1, log_stars2)
-            similarity += stars_similarity * 0.1
-        
-        return min(1.0, similarity)
+    def _store_analysis_result(self, package_id: int, analysis_type: str, results: Dict):
+        """Store analysis results in history"""
+        try:
+            with sqlite3.connect(self.database_path) as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute('''
+                    INSERT INTO analysis_history (package_id, analysis_type, results)
+                    VALUES (?, ?, ?)
+                ''', (package_id, analysis_type, json.dumps(results)))
+                
+                conn.commit()
+                
+        except Exception as e:
+            self.logger.error(f"Error storing analysis result: {e}")
     
-    def export_network_analysis_to_csv(self, output_path: str):
-        """Exportiert Netzwerk-Analyse als CSV"""
-        graph = self.build_joint_areal_network()
-        
-        # Berechne Netzwerk-Metriken für alle Pakete
-        betweenness = nx.betweenness_centrality(graph) if graph.number_of_nodes() > 1 else {}
-        closeness = nx.closeness_centrality(graph) if graph.number_of_nodes() > 1 else {}
-        pagerank = nx.pagerank(graph) if graph.number_of_nodes() > 1 else {}
-        
-        with open(output_path, 'w', newline='', encoding='utf-8') as csvfile:
-            fieldnames = [
-                'package_name', 'quality_score', 'popularity_score',
-                'dependencies_count', 'dependents_count',
-                'betweenness_centrality', 'closeness_centrality', 'pagerank',
-                'github_stars', 'github_forks', 'language', 'license'
-            ]
-            
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writeheader()
-            
-            for node in graph.nodes():
-                node_data = graph.nodes[node]
-                metadata = node_data.get('metadata', {})
+    def get_package_by_name(self, name: str) -> Optional[Dict]:
+        """Retrieve package information by name"""
+        try:
+            with sqlite3.connect(self.database_path) as conn:
+                cursor = conn.cursor()
                 
-                # Zähle Abhängigkeiten und Dependents
-                deps_count = len([n for n in graph.neighbors(node) 
-                                if graph[node][n].get('relation') == 'dependency'])
-                dependents_count = len([n for n in graph.predecessors(node) 
-                                      if graph[n][node].get('relation') == 'dependency'])
+                cursor.execute('''
+                    SELECT id, name, version, source, description, metadata, 
+                           github_metadata, network_metrics, quality_score, 
+                           popularity_score, security_score
+                    FROM packages WHERE name = ?
+                ''', (name,))
                 
-                writer.writerow({
-                    'package_name': node,
-                    'quality_score': node_data.get('quality_score', 0),
-                    'popularity_score': node_data.get('popularity_score', 0),
-                    'dependencies_count': deps_count,
-                    'dependents_count': dependents_count,
-                    'betweenness_centrality': betweenness.get(node, 0),
-                    'closeness_centrality': closeness.get(node, 0),
-                    'pagerank': pagerank.get(node, 0),
-                    'github_stars': metadata.get('stars', 0),
-                    'github_forks': metadata.get('forks', 0),
-                    'language': metadata.get('language', ''),
-                    'license': metadata.get('license', '')
-                })
-        
-        self.logger.info(f"Netzwerk-Analyse exportiert nach {output_path}")
+                row = cursor.fetchone()
+                if row:
+                    return {
+                        'id': row[0],
+                        'name': row[1],
+                        'version': row[2],
+                        'source': row[3],
+                        'description': row[4],
+                        'metadata': json.loads(row[5]) if row[5] else {},
+                        'github_metadata': json.loads(row[6]) if row[6] else None,
+                        'network_metrics': json.loads(row[7]) if row[7] else None,
+                        'quality_score': row[8],
+                        'popularity_score': row[9],
+                        'security_score': row[10]
+                    }
+                    
+        except Exception as e:
+            self.logger.error(f"Error retrieving package {name}: {e}")
+            
+        return None
     
-    def get_trending_packages(self, days: int = 30, limit: int = 20) -> List[Dict]:
-        """Findet trending Pakete basierend auf verschiedenen Metriken"""
-        cutoff_date = (datetime.now() - timedelta(days=days)).isoformat()
-        
-        with sqlite3.connect(self.database_path) as conn:
-            cursor = conn.cursor()
+    def export_network_visualization_data(self, output_format: str = 'json') -> Union[str, Dict]:
+        """Export network data for visualization (EtherApe-style)"""
+        try:
+            if self._graph.number_of_nodes() == 0:
+                self._update_graph()
             
-            cursor.execute('''
-                SELECT name, metadata, quality_score, popularity_score, updated_at
-                FROM packages 
-                WHERE updated_at > ?
-                ORDER BY (quality_score * 0.4 + popularity_score * 0.6) DESC
-                LIMIT ?
-            ''', (cutoff_date, limit))
-            
-            results = []
-            for name, metadata_json, quality, popularity, updated_at in cursor.fetchall():
-                metadata = json.loads(metadata_json) if metadata_json else {}
+            # Prepare nodes data
+            nodes = []
+            for node_id in self._graph.nodes():
+                node_data = self._graph.nodes[node_id]
+                metrics = self.calculate_network_metrics(node_id)
                 
-                results.append({
-                    'name': name,
-                    'quality_score': quality,
-                    'popularity_score': popularity,
-                    'github_stars': metadata.get('stars', 0),
-                    'github_forks': metadata.get('forks', 0),
-                    'language': metadata.get('language'),
-                    'updated_at': updated_at,
-                    'trending_score': (quality * 0.4) + (popularity * 0.6)
+                nodes.append({
+                    'id': node_id,
+                    'name': node_data.get('name', f'Package_{node_id}'),
+                    'metrics': asdict(metrics)
                 })
             
-            return results
-    
-    def export_gephi_network(self, nodes_file: str, edges_file: str):
-        """Exportiert das Netzwerk für Gephi-Visualisierung"""
-        graph = self.build_joint_areal_network()
-        
-        # Knoten exportieren
-        with open(nodes_file, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            writer.writerow(['Id', 'Label', 'Quality', 'Popularity', 'Stars', 'Language'])
+            # Prepare edges data
+            edges = []
+            for from_id, to_id, edge_data in self._graph.edges(data=True):
+                edges.append({
+                    'from': from_id,
+                    'to': to_id,
+                    'relation_type': edge_data.get('relation_type', 'unknown'),
+                    'weight': edge_data.get('weight', 1.0)
+                })
             
-            for node in graph.nodes():
-                node_data = graph.nodes[node]
-                metadata = node_data.get('metadata', {})
+            visualization_data = {
+                'nodes': nodes,
+                'edges': edges,
+                'metadata': {
+                    'total_nodes': len(nodes),
+                    'total_edges': len(edges),
+                    'export_timestamp': datetime.now().isoformat()
+                }
+            }
+            
+            if output_format.lower() == 'json':
+                return json.dumps(visualization_data, indent=2)
+            else:
+                return visualization_data
                 
-                writer.writerow([
-                    node,
-                    node,
-                    node_data.get('quality_score', 0),
-                    node_data.get('popularity_score', 0),
-                    metadata.get('stars', 0),
-                    metadata.get('language', '')
-                ])
-        
-        # Kanten exportieren
-        with open(edges_file, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            writer.writerow(['Source', 'Target', 'Type', 'Weight'])
-            
-            for source, target in graph.edges():
-                edge_data = graph[source][target]
-                writer.writerow([
-                    source,
-                    target,
-                    edge_data.get('relation', 'unknown'),
-                    edge_data.get('weight', 1)
-                ])
-        
-        self.logger.info(f"Netzwerk für Gephi exportiert: {nodes_file}, {edges_file}")
+        except Exception as e:
+            self.logger.error(f"Error exporting visualization data: {e}")
+            return {} if output_format != 'json' else '{}'
+    
+    def get_statistics(self) -> Dict[str, Any]:
+        """Get comprehensive database statistics"""
+        try:
+            with sqlite3.connect(self.database_path) as conn:
+                cursor = conn.cursor()
+                
+                # Package statistics
+                cursor.execute('SELECT COUNT(*) FROM packages')
+                total_packages = cursor.fetchone()[0]
+                
+                cursor.execute('SELECT COUNT(*) FROM dependencies')
+                total_dependencies = cursor.fetchone()[0]
+                
+                cursor.execute('SELECT COUNT(*) FROM package_networks')
+                total_relationships = cursor.fetchone()[0]
+                
+                # Quality score statistics
+                cursor.execute('SELECT AVG(quality_score), MIN(quality_score), MAX(quality_score) FROM packages')
+                quality_stats = cursor.fetchone()
+                
+                # Network statistics
+                if self._graph.number_of_nodes() == 0:
+                    self._update_graph()
+                
+                network_stats = {}
+                if self._graph.number_of_nodes() > 0:
+                    network_stats = {
+                        'nodes': self._graph.number_of_nodes(),
+                        'edges': self._graph.number_of_edges(),
+                        'density': nx.density(self._graph),
+                        'is_connected': nx.is_weakly_connected(self._graph)
+                    }
+                
+                return {
+                    'packages': {
+                        'total': total_packages,
+                        'with_github_data': 0  # Would need additional query
+                    },
+                    'dependencies': {
+                        'total': total_dependencies
+                    },
+                    'relationships': {
+                        'total': total_relationships
+                    },
+                    'quality_scores': {
+                        'average': quality_stats[0] or 0.0,
+                        'minimum': quality_stats[1] or 0.0,
+                        'maximum': quality_stats[2] or 0.0
+                    },
+                    'network': network_stats,
+                    'generated_at': datetime.now().isoformat()
+                }
+                
+        except Exception as e:
+            self.logger.error(f"Error getting statistics: {e}")
+            return {}
 
 
-# Beispiel-Nutzung
+# Example usage and testing
 if __name__ == "__main__":
-    # Initialisiere erweiterte ORM
-    orm = ExtendedAlienPimpORM("alienpimp_extended.db")
+    # Initialize ORM
+    orm = ExtendedAlienPimpORM("test_alienpimp.db")
     
-    # Beispiel: Füge ein Paket mit GitHub-Metadaten hinzu
-    package_id = orm.add_package_with_github(
-        name="requests",
-        version="2.28.1",
+    # Add some test packages
+    pkg1_id = orm.add_package(
+        name="numpy",
+        version="1.24.0", 
         source="pypi",
-        github_url="https://github.com/psf/requests",
-        dependencies=["urllib3", "certifi", "charset-normalizer"],
-        description="HTTP library for Python"
+        description="Fundamental package for scientific computing with Python",
+        github_url="https://github.com/numpy/numpy"
     )
     
-    # Analysiere das Paket-Ökosystem
-    analysis = orm.analyze_package_ecosystem("requests")
-    print("Ökosystem-Analyse:")
-    print(json.dumps(analysis, indent=2, ensure_ascii=False))
+    pkg2_id = orm.add_package(
+        name="pandas", 
+        version="2.0.0",
+        source="pypi", 
+        description="Powerful data structures for data analysis",
+        github_url="https://github.com/pandas-dev/pandas"
+    )
     
-    # Exportiere Netzwerk-Analyse
-    orm.export_network_analysis_to_csv("network_analysis.csv")
+    # Add dependencies
+    orm.add_dependency(pkg2_id, "numpy", ">=1.21.0")
     
-    # Hole trending Pakete
-    trending = orm.get_trending_packages(days=30, limit=10)
-    print("\nTrending Pakete:")
-    for pkg in trending:
-        print(f"- {pkg['name']}: Score {pkg['trending_score']:.2f} "
-              f"(★{pkg['github_stars']}, Quality: {pkg['quality_score']:.1f})")
+    # Add network relationships
+    orm.add_network_relationship(pkg2_id, pkg1_id, "depends_on", strength=0.9)
     
-    # Exportiere für Gephi
-    orm.export_gephi_network("nodes.csv", "edges.csv")
+    # Perform analysis
+    analysis = orm.analyze_package_ecosystem(pkg1_id)
+    print("Ecosystem Analysis Results:")
+    print(json.dumps(analysis, indent=2))
+    
+    # Get statistics
+    stats = orm.get_statistics()
+    print("\nDatabase Statistics:")
+    print(json.dumps(stats, indent=2))
+    
+    # Export visualization data
+    viz_data = orm.export_network_visualization_data()
+    print("\nVisualization Data:")
+    print(viz_data[:500] + "..." if len(viz_data) > 500 else viz_data)
