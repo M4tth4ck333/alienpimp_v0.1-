@@ -4,17 +4,31 @@ from pathlib import Path
 
 logger = logging.getLogger("apt_integration")
 
+# Logging konfigurieren (einmal beim Start)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+
 def install_deb_package(deb_path: Path):
     if not deb_path.exists():
         logger.error(f"DEB-Paket nicht gefunden: {deb_path}")
         return False
     try:
         logger.info(f"Installiere DEB-Paket {deb_path}")
-        subprocess.run(["sudo", "dpkg", "-i", str(deb_path)], check=True)
-        logger.info("Installation abgeschlossen")
+        result = subprocess.run(
+            ["sudo", "dpkg", "-i", str(deb_path)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        logger.info(f"Installation abgeschlossen:\n{result.stdout}")
         return True
     except subprocess.CalledProcessError as e:
-        logger.error(f"Fehler bei Installation: {e}")
+        logger.error(f"Fehler bei Installation:\n{e.stderr}")
+        return False
+    except Exception as e:
+        logger.error(f"Unerwarteter Fehler bei Installation: {e}")
         return False
 
 def build_src_tarball(src_dir: Path, output_tarball: Path):
@@ -23,11 +37,19 @@ def build_src_tarball(src_dir: Path, output_tarball: Path):
         return False
     try:
         logger.info(f"Erstelle Source-Tarball {output_tarball} aus {src_dir}")
-        subprocess.run(["tar", "-czf", str(output_tarball), "-C", str(src_dir.parent), src_dir.name], check=True)
-        logger.info("Tarball erfolgreich erstellt")
+        result = subprocess.run(
+            ["tar", "-czf", str(output_tarball), "-C", str(src_dir.parent), src_dir.name],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        logger.info(f"Tarball erfolgreich erstellt:\n{result.stdout}")
         return True
     except subprocess.CalledProcessError as e:
-        logger.error(f"Fehler beim Erstellen des Tarballs: {e}")
+        logger.error(f"Fehler beim Erstellen des Tarballs:\n{e.stderr}")
+        return False
+    except Exception as e:
+        logger.error(f"Unerwarteter Fehler beim Erstellen des Tarballs: {e}")
         return False
 
 def compile_c_source(source_file: Path, output_binary: Path, extra_flags=None):
@@ -39,9 +61,17 @@ def compile_c_source(source_file: Path, output_binary: Path, extra_flags=None):
         cmd.extend(extra_flags)
     try:
         logger.info(f"Kompiliere {source_file} zu {output_binary}")
-        subprocess.run(cmd, check=True)
-        logger.info("Kompilierung erfolgreich")
+        result = subprocess.run(
+            cmd,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        logger.info(f"Kompilierung erfolgreich:\n{result.stdout}")
         return True
     except subprocess.CalledProcessError as e:
-        logger.error(f"Kompilierungsfehler: {e}")
+        logger.error(f"Kompilierungsfehler:\n{e.stderr}")
+        return False
+    except Exception as e:
+        logger.error(f"Unerwarteter Fehler bei Kompilierung: {e}")
         return False
