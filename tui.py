@@ -1,4 +1,3 @@
-# tui.py
 import cmd2
 from pathlib import Path
 from core import AlienManager, BasePackage
@@ -22,16 +21,20 @@ class AlienShell(cmd2.Cmd):
             self.poutput(f"{pkg.name} - {pkg.version} - {pkg.source} - {pkg.timestamp} - SHA256: {pkg.sha256}")
 
     def do_add(self, arg):
-        "Fügt ein neues Paket hinzu: add <name> <version> <source> [<filepath>]"
+        """Fügt ein neues Paket hinzu: add <name> <version> <source> [<filepath>]"""
         parts = arg.split()
         if len(parts) < 3:
             self.perror("Benutzung: add <name> <version> <source> [<filepath>]")
             return
         name, version, source = parts[:3]
         filepath = Path(parts[3]) if len(parts) >= 4 else None
-        pkg = BasePackage(name, version, source, filepath)
-        self.manager.add_package(pkg)
-        self.poutput(f"Paket {name} hinzugefügt.")
+
+        try:
+            pkg = BasePackage(name, version, source, filepath)
+            self.manager.add_package(pkg)
+            self.poutput(f"Paket {name} hinzugefügt.")
+        except Exception as e:
+            self.perror(f"Fehler beim Hinzufügen des Pakets: {e}")
 
     def do_build(self, arg):
         "Baue alle Pakete"
