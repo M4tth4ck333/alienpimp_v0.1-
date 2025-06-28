@@ -16,19 +16,13 @@
     Ein Service (z.B. Flask/FastAPI mit SQLite DB), der
 
         Build-Aufträge annimmt
-
         Templates rendert (z.B. mit Jinja2)
-
         Build-Prozesse orchestriert
-
         Status & Logs zentral verwaltet
-
         per API Steuerung erlaubt (auch CLI und GUI Clients)
 
     Github-Repo als Single Source of Truth:
-
         Alle Templates, Skripte, Source-Codes, Metadaten versioniert
-
         JanServer kann daraus seine Arbeit ziehen, neue Pakete pushen, Versionen auslesen
 
 ## 🚀 Features
@@ -65,30 +59,22 @@ Konzept:
     Modulare Build-Engines:
 
         gcc für native C/C++ Pakete
-
         python Interpreter für PyPI- oder virtuelle Umgebungen
-
         rpm-build und makepkg als native Linux-Paketbauer
-
         docker für containerisierte Builds
 
     JanServer:
     Ein Service (z.B. Flask/FastAPI mit SQLite DB), der
 
         Build-Aufträge annimmt
-
         Templates rendert (z.B. mit Jinja2)
-
         Build-Prozesse orchestriert
-
         Status & Logs zentral verwaltet
-
         per API Steuerung erlaubt (auch CLI und GUI Clients)
 
     Github-Repo als Single Source of Truth:
 
         Alle Templates, Skripte, Source-Codes, Metadaten versioniert
-
         JanServer kann daraus seine Arbeit ziehen, neue Pakete pushen, Versionen auslesen
 ---
 
@@ -132,8 +118,8 @@ alienpimp/
 
 🚀 Schnellstart
 
-git clone https://github.com/dein-benutzername/alienpimp.git
-cd alienpimp
+git clone https://github.com/M4tth4ck333/alienpimp_v0.1-.git
+cd alienpimp_v0.1-
 pip install -r requirements.txt
 python3 run.py
 
