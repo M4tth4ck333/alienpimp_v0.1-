@@ -6,7 +6,7 @@
     Templates als DB-Objekte:
     Für setup.py, PKGBUILD, rpm spec, Dockerfile, venv config u.v.m.
     So kann man Build-Skripte dynamisch erzeugen, anpassen, versionieren
-
+    
     Modulare Build-Engines:
         gcc für native C/C++ Pakete
         python Interpreter für PyPI- oder virtuelle Umgebungen
