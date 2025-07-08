@@ -8,11 +8,11 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="alienpimp",
+    name="apexs",
     version="0.1.0",
     author="Jan Schroeder",  
     author_email="jjschroeder64@gmail.con",  
-    url="https://github.com/M4tth4ck333/alienpimp",
+    url="https://github.com/M4tth4ck333/apexs",
     description="Modulares Pentest-Toolkit mit TUI, Datenbank und KI-Integration",
     long_description=long_description,
     long_description_content_type="text/markdown",
