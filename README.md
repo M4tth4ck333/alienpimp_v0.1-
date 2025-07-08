@@ -1,4 +1,4 @@
-# 👽 AlienPimp – Modularer Paketmanager & Mutationsmaschine
+# 👽 APEX (Alien_pack_and_compile_mgrX – Modularer Paketmanager & Mutationsmaschine
   Vision: JanServer als modularer Paket-Build- und Management-Hub
   Konzept:
     Central ORM in SQLite3:
