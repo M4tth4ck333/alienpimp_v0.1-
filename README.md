@@ -1,100 +1,78 @@
-👽 APEX (Alien_pack_and_compile_mgrX – Modularer Paketmanager & Mutationsmaschine
+## 👽 APEX (Alien_pack_and_compile_mgrX – Modularer Paketmanager & Mutationsmaschine
+Vision: 
+#         JanServer als modularer Paket-Build- und Management-Hub      
+                   Konzept:
+                    Central ORM in SQLite3:
+                    Paket-Metadaten, Build-Status, Abhängigkeiten, Versionshistorie
+                    Templates als DB-Objekte:
+                    Für setup.py, PKGBUILD, rpm spec, Dockerfile, venv config u.v.m.
+                    So kann man Build-Skripte dynamisch erzeugen, anpassen, versionieren
+                    Ein Service (z.B. Flask/FastAPI mit SQLite DB), der
+                    Build-Aufträge annimmt
+                    Templates rendert (z.B. mit Jinja2)
+                    Build-Prozesse orchestriert
+                    Status & Logs zentral verwaltet
+                    per API Steuerung erlaubt (auch CLI und GUI Clients)
 
-  Vision: JanServer als modularer Paket-Build- und Management-Hub
+## Modulare Build-Engines: 
+        gcc oder tiny.cc für native C/C++ Pakete
+        tiny.cc(übersetzt sich sogar selbst)
+        python Interpreter für PyPI- oder virtuelle Umgebungen
+        python wrapper class and modular "firewall-features
+        rpm-build und makepkg als native Linux-Paketbauer
+        docker für containerisierte Builds
+        Github-Repo als Single Source of Truth:
+                Alle Templates, Skripte, Source-Codes, Metadaten versioniert
 
-  Konzept:
-    Central ORM in SQLite3:
-    Paket-Metadaten, Build-Status, Abhängigkeiten, Versionshistorie
-    Templates als DB-Objekte:
-    Für setup.py, PKGBUILD, rpm spec, Dockerfile, venv config u.v.m.
-    So kann man Build-Skripte dynamisch erzeugen, anpassen, versionieren
+# JanServer kann daraus seine Arbeit ziehen, neue Pakete pushen, Versionen auslesen 
 
-    Modulare Build-Engines:
-        gcc oder tiny.cc für native C/C++ Pakete
-        tiny.cc(übersetzt sich sogar selbst)
-        python Interpreter für PyPI- oder virtuelle Umgebungen
-        python wrapper class and modular "firewall-features"
-        rpm-build und makepkg als native Linux-Paketbauer
+## 🚀 Features
 
-        docker für containerisierte Builds
+        - Paketkonvertierung zwischen `.deb`, `.rpm`, `.src` und mehr  
+        - Automatisierte Python-Setup- und virtuelle Umgebungs-Erstellung  
+        - SQLite-basierte Paketdatenbank mit Hash-Verifikation  
+        - Modular erweiterbar für WiFi, OSINT & mehr 
+        - Bedienbar als CLI-Tool, Tkinter-GUI oder Webservice  
+        - Webhosting-ready für Apache mit mod_wsgi 
+        - Containerisierbar via Docker
 
-    Jan_Schroeder :
-
-    Ein Service (z.B. Flask/FastAPI mit SQLite DB), der
-
-
-
-        Build-Aufträge annimmt
-        Templates rendert (z.B. mit Jinja2)
-        Build-Prozesse orchestriert
-        Status & Logs zentral verwaltet
-        per API Steuerung erlaubt (auch CLI und GUI Clients)
-
-    Github-Repo als Single Source of Truth:
-Alle Templates, Skripte, Source-Codes, Metadaten versioniert
-JanServer kann daraus seine Arbeit ziehen, neue Pakete pushen, Versionen auslesen 
-## 🚀 Features              
-              - Paketkonvertierung zwischen `.deb`, `.rpm`, `.src` und mehr  
-              - Automatisierte Python-Setup- und virtuelle Umgebungs-Erstellung  
-              - SQLite-basierte Paketdatenbank mit Hash-Verifikation  
-              - Modular erweiterbar für WiFi, OSINT & mehr 
-              - Bedienbar als CLI-Tool, Tkinter-GUI oder Webservice  
-              - Webhosting-ready für Apache mit mod_wsgi  
-              - Containerisierbar via Docker
 ## 🖥 Deployment auf Apache
 
-
-
-AlienPimp läuft bequem als WSGI-App auf Apache mit `mod_wsgi`
-1. Mod_wsgi installieren und aktivieren  
-2. AlienPimp als Python WSGI-App einrichten (`alienpimp.wsgi`)  
-3. Apache-Site konfigurieren mit `WSGIScriptAlias`  
-4. Paket-Repositories per Apache statisch hosten  
-5. Alternativ REST-API via Flask/FastAPI erweitern  
-
-Vision: JanServer als modularer Paket-Build- und Management-Hub
-Konzept:
-  Central ORM in SQLite3:
-    Paket-Metadaten, Build-Status, Abhängigkeiten, Versionshistorie
-
-
-
-    Templates als DB-Objekte:
+        AlienPimp läuft bequem als WSGI-App auf Apache mit `mod_wsgi`
+        1. Mod_wsgi installieren und aktivieren  
+        2. AlienPimp als Python WSGI-App einrichten (`alienpimp.wsgi`)  
+        3. Apache-Site konfigurieren mit `WSGIScriptAlias`  
+        4. Paket-Repositories per Apache statisch hosten  
+        5. Alternativ REST-API via Flask/FastAPI erweitern  
+        
+ # Templates als DB-Objekte:
 
     Für setup.py, PKGBUILD, rpm spec, Dockerfile, venv config u.v.m.
-
     So kann man Build-Skripte dynamisch erzeugen, anpassen, versionieren
-
-
-
-    Modulare Build-Engines:
-        gcc und tiny.cc für native C/C++ Pakete
+ 
+ # Modulare Build-Engines:
+        
+        gcc und tiny.cc für native C/C++ Pakete
         python Interpreter für PyPI- oder virtuelle Umgebungen
         rpm-build und makepkg als native Linux-Paketbauer
         docker für containerisierte Builds
         git bit und kein shit 
-    JanServer:
 
-    Ein Service (z.B. Flask/FastAPI mit SQLite DB), der
-        Build-Aufträge annimmt
-        Templates rendert (z.B. mit Jinja2)
-        Build-Prozesse orchestriert
-        Status & Logs zentral verwaltet
-        per API Steuerung erlaubt (auch CLI und GUI Clients)
+## JanServer:
+
+        Ein Service (z.B. Flask/FastAPI mit SQLite DB),
+        Build-Aufträge annimmt
+        Templates rendert (z.B. mit Jinja2)
+        Build-Prozesse orchestrier
+        Status & Logs zentral verwalter
+        per API Steuerung erlaubt (auch CLI und GUI Clients)
 
 
 
     Github-Repo als Single Source of Truth:
 
-
-
         Alle Templates, Skripte, Source-Codes, Metadaten versioniert
-
         JanServer kann daraus seine Arbeit ziehen, neue Pakete pushen, Versionen auslesen
-
----
-
-
 
 ## ⚡ CLI-Beispiele
 alienpimp convert foo.deb --to rpm
